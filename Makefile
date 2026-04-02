@@ -38,6 +38,16 @@ reset:
 	$(WP_CLI_RUN) db reset --defaults --yes
 	$(MAKE) install-wordpress
 
+backup:
+	$(WP_CLI_RUN) db export wp-content/backup.sql --add-drop-table
+	zip -rq backup.zip wordpress/wp-content
+import-backup:
+	unzip -oq backup.zip
+	$(WP_CLI_RUN) db import wp-content/backup.sql
+	rm -rf wordpress/wp-content/backup.sql
+	$(WP_CLI_RUN) core update-db
+	$(MAKE) symlink-docker-create
+
 install-precondition:
 	@if [ ! -f .env ]; then\
 		echo "Copy and adjust values .env.sample => .env";\
