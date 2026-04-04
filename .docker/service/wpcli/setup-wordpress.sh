@@ -51,7 +51,7 @@ if ! wp --url="$url" core is-installed; then
   wp user meta update "$(wp user list --field=ID --role=subscriber)" wp_persisted_preferences "{\"core/edit-post\":{\"welcomeGuide\": false,\"fullscreenMode\": false}}" --format=json
 
   # delete existing pages and posts (and connected comments)
-  wp post delete $(wp post list --post_type='page,post' --format=ids) --force
+  wp post list --post_type='post,page' --format=ids | xargs -r wp post delete --force
 
   wp theme delete --all
   wp plugin uninstall --deactivate --all 2>/dev/null
@@ -96,16 +96,24 @@ if wp --url="$url" core is-installed; then
   echo >&2 "Configuring Plugins"
 
   # wp-content/w3tc-config/master.php
+  # [--master] Use master config/state
+  # [--state]  Use state, not config. State is used for backend notifications
+  # [--type=<type>] Type of data used boolean/bool/string/integer/int/array/json. Default: string
   if wp plugin is-installed w3-total-cache && [ "$(wp w3tc option get objectcache.engine)" != "memcached" ]; then
-    wp w3tc option set pgcache.enabled 0 --type=boolean
+    wp w3tc option set dbcache.enabled 1 --type=boolean --master
+    wp w3tc option set dbcache.engine memcached --master
+    wp w3tc option set dbcache.memcached.servers memcached:11211 --type=array --master
 
-    wp w3tc option set dbcache.enabled 1 --type=boolean
-    wp w3tc option set dbcache.engine memcached
-    wp w3tc option set dbcache.memcached.servers memcached:11211 --type=array
+    wp w3tc option set objectcache.enabled 1 --type=boolean --master
+    wp w3tc option set objectcache.engine memcached --master
+    wp w3tc option set objectcache.memcached.servers memcached:11211 --type=array --master
 
-    wp w3tc option set objectcache.enabled 1 --type=boolean
-    wp w3tc option set objectcache.engine memcached
-    wp w3tc option set objectcache.memcached.servers memcached:11211 --type=array
+    wp w3tc option set pgcache.enabled 1 --type=boolean --master
+    wp w3tc option set pgcache.engine file_generic --master
+    wp w3tc option set pgcache.memcached.servers memcached:11211 --type=array --master
+
+    wp w3tc option set license.community_terms decline --state
+    wp w3tc option set common.show_note.nginx_restart_required false --state
   fi
 fi
 
