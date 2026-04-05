@@ -80,13 +80,10 @@ add_filter('wp_editor_set_quality', function ($arg) {
     return 100;
 });
 
-// dequeue jQuery Migrate from frontend
+// dequeue jQuery Migrate
 if(!function_exists('wpdev_dequeue_jquery_migrate')){
     function wpdev_dequeue_jquery_migrate( $scripts ) {
-        if (
-            !is_admin()
-            && !empty( $scripts->registered['jquery'])
-        ) {
+        if (!empty( $scripts->registered['jquery'])) {
             $jquery_dependencies = $scripts->registered['jquery']->deps;
             $scripts->registered['jquery']->deps = array_diff(
                  $jquery_dependencies,
@@ -104,7 +101,7 @@ if (!function_exists('action_plugins_loaded')){
      * Fires once activated plugins have loaded.
      *
      */
-    function action_plugins_loaded() : void {
+    function action_plugins_loaded(): void {
 
     }
 }

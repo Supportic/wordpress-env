@@ -8,12 +8,14 @@ networks:
 
 services:
   ########################
-  # Wordpress & Apache Web Server
+  # Wordpress
   ########################
   wordpress:
     container_name: ${PROJECT_NAME}-wordpress
     image: ${PROJECT_NAME}/wordpress:0.0.1
     hostname: ${PROJECT_NAME}-wordpress
+    user: ${UID:-1000}
+    restart: unless-stopped
     build:
       context: ./.docker/service/wordpress
       args:
@@ -25,19 +27,11 @@ services:
         - WP_VERSION=${WP_VERSION}
         - PHP_VERSION=${PHP_VERSION}
       target: develop
-    working_dir: /var/www/html
-    restart: unless-stopped
     init: true
-    user: ${UID:-1000}
-    healthcheck:
-      test: curl --fail http://localhost:${WORDPRESS_PORT_HOST:-80} || exit 1
-      start_period: 10s
-      interval: 60s
-      timeout: 5s
-      retries: 3
+    working_dir: /var/www/html
     volumes:
       - ./wordpress:/var/www/html
-      - ./wp-dev:/home/$UNAME/wp-dev
+      - ./wp-dev:/home/${UNAME}/wp-dev
     env_file:
       - .wordpress.env
     environment:
@@ -53,25 +47,37 @@ services:
         condition: service_healthy
       memcached:
         condition: service_started
+    # make curl localhost possible inside this container (throws error when container shuts down quickly)
+    # post_start:
+    #   - command: bash -c "echo \"--resolve localhost:80:$(php -r 'echo gethostbyname(\"nginx\");')\" > /home/${UNAME}/.curlrc"
+    #     user: ${UID:-1000}
 
   ########################
-  # PROXY (not required)
+  # Webserver
   ########################
   nginx:
     container_name: ${PROJECT_NAME}-nginx
     image: nginx:alpine
     restart: unless-stopped
     ports:
-      # expose more ports if needed
-      - "${WORDPRESS_PORT_HOST:-80}:${WORDPRESS_PORT_HOST:-80}"
+      - "${WORDPRESS_PORT_HOST:-80}:80"
     volumes:
+      - ./wordpress:/var/www/html
       - ./.docker/data/logs/nginx:/var/log/nginx
       - ./.docker/service/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./.docker/service/nginx/conf.d:/etc/nginx/conf.d:ro
+    healthcheck:
+      test: curl --fail http://localhost:${WORDPRESS_PORT_HOST:-80} || exit 1
+      start_period: 10s
+      interval: 60s
+      timeout: 5s
+      retries: 3
     depends_on:
-      - wordpress
+      wordpress:
+        condition: service_started
     post_start:
       - command: chown -R ${UID}:${GID} /var/log/nginx
+        user: root
 
   wpcli:
     container_name: ${PROJECT_NAME}-wpcli
@@ -88,7 +94,7 @@ services:
         - PHP_VERSION=${PHP_VERSION}
     init: true
     # make curl localhost possible inside this container
-    network_mode: "service:wordpress"
+    network_mode: "service:nginx"
     env_file:
       - .wordpress.env
     environment:
@@ -111,7 +117,6 @@ services:
   db:
     container_name: ${PROJECT_NAME}-db
     image: mariadb:11.4
-    hostname: ${PROJECT_NAME}-db
     user: mysql
     restart: unless-stopped
     healthcheck:
@@ -146,6 +151,8 @@ services:
   adminer:
     container_name: ${PROJECT_NAME}-adminer
     image: adminer:latest
+    user: adminer
+    restart: unless-stopped
     environment:
       # https://github.com/vrana/adminer/tree/master/plugins
       # listing plugins here will move them from /plugins to /plugins-enabled
@@ -155,8 +162,6 @@ services:
       # default server entry in the login form
       # ADMINER_DEFAULT_SERVER: "db"
       ADMINER_SERVERS_JSON: '[{"server":"db:3306","username":"${DB_USER}","password":"${DB_PASS}","db":"${DB_NAME}","label":"Local Dev WordPress"}]'
-    restart: unless-stopped
-    user: adminer
     ports:
       - "${ADMINER_PORT_HOST:-8080}:8080" # web ui
     volumes:

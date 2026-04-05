@@ -113,7 +113,6 @@ if wp --url="$url" core is-installed; then
     wp w3tc option set pgcache.memcached.servers memcached:11211 --type=array --master
 
     wp w3tc option set license.community_terms decline --state
-    wp w3tc option set common.show_note.nginx_restart_required false --state
   fi
 fi
 

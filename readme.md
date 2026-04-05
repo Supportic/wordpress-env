@@ -5,19 +5,20 @@ Backend: [http://localhost/wp-admin](http://localhost/wp-admin)
 Adminer: [http://localhost:8080](http://localhost:8080)  
 Mailpit: [http://localhost:8025](http://localhost:8025)
 
-| **Command**    | **Description**                         |
-| -------------- | --------------------------------------- |
-| `make install` | Install the environment                 |
-| `make start`   | Start the environment                   |
-| `make stop`    | Pause the environment                   |
-| `make down`    | Shutdown the environment                |
-| `make restart` | Restart the environment                 |
-| `make remove`  | Remove WordPress and volumes            |
-| `make erase`   | Remove everything (incl. base images)   |
-| `make reset`   | Reset WordPress Installation            |
-| `make shell`   | Enter the container                     |
-| `make wpcli`   | Enter the WP-CLI container              |
-| `make log`     | Print content of debug.log into console |
+| **Command**      | **Description**                         |
+| ---------------- | --------------------------------------- |
+| `make install`   | Install the environment                 |
+| `make start`     | Start the environment                   |
+| `make stop`      | Pause the environment                   |
+| `make down`      | Shutdown the environment                |
+| `make restart`   | Restart the environment                 |
+| `make remove`    | Remove WordPress and volumes            |
+| `make erase`     | Remove everything (incl. base images)   |
+| `make reset`     | Reset WordPress Installation            |
+| `make shell`     | Enter the container                     |
+| `make wpcli`     | Enter the WP-CLI container              |
+| `make log`       | Print content of debug.log into console |
+| `make clean-log` | Clears content of debug.log             |
 
 ## Install
 
@@ -29,9 +30,8 @@ Mailpit: [http://localhost:8025](http://localhost:8025)
 ## Install Multisite
 
 1. enable commented out multisite env variable in `.wordpress.env`
-2. enable COPY of `.htaccess.multisite.subfolder` or `.htaccess.multisite.subdomain` in WordPress Dockerfile `.docker/service/wordpress/Dockerfile`
-3. enable commented out multisite nginx rule in `.docker/service/nginx/conf.d/wpenv.conf`
-4. set `is_multisite` to true in `.docker/service/wpcli/setup-wordpress.sh`
+2. configure multisite nginx rule in `.docker/service/nginx/conf.d/wpenv.conf`
+3. set `is_multisite` to true in `.docker/service/wpcli/setup-wordpress.sh`
 
 ### Adding new themes and plugins
 
@@ -51,42 +51,6 @@ If you want to make sure all symlinks are in sync (broken,new,current) you can r
 WordPress options: https://codex.wordpress.org/Option_Reference
 
 Might need to define PHP variables WP_SITEURL and WP_HOME in the future.
-
-## Add more WP instances to NGINX
-
-- connect wordpress container of new WP instance with same network as NGINX
-  ```
-  networks:
-    nginx-network:
-      name: project-name-network
-      driver: bridge
-      external: true
-  ```
-- compose.yaml nginx: add additional port to expose on host
-- make sure WP_HOME and WP_SITEURL has the correct port (in `.wordpress.env`)
-- duplicate nginx conf and change ports
-
-```conf
-upstream wpenv2 {
-  # docker containers: use hostname
-  server project-name-wordpress:80;
-}
-
-server {
-  listen [::]:3000 default_server ipv6only=on;
-  listen 0.0.0.0:3000 default_server;
-
-  location @proxy {
-    proxy_pass http://wpenv2;
-
-    proxy_set_header   X-Forwarded-Host $host:3000;
-    proxy_set_header   X-Forwarded-Port 3000;
-
-    proxy_redirect http://localhost/ http://$host:3000/;
-    proxy_set_header   Host $host:3000;
-  }
-}
-```
 
 ## Known issues
 
