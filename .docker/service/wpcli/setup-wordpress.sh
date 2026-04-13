@@ -6,7 +6,12 @@ set -Eeuo pipefail
 
 is_multisite=false
 language_packs="de_DE"
+install_plugins_file="/install-plugins.txt"
+install_themes_file="/install-themes.txt"
 url="http://localhost"
+
+# env
+WORDPRESS_PORT_HOST="${WORDPRESS_PORT_HOST:-}"
 
 if [ -n "$WORDPRESS_PORT_HOST" ] && [ "$WORDPRESS_PORT_HOST" -ne 80 ]; then
   url="http://localhost:${WORDPRESS_PORT_HOST}"
@@ -53,9 +58,17 @@ if ! wp --url="$url" core is-installed; then
   # delete existing pages and posts (and connected comments)
   wp post list --post_type='post,page' --format=ids | xargs -r wp post delete --force
 
+  #################################################################################################
+  ## uninstall default themes
+  #################################################################################################
   wp theme delete --all
-  wp plugin uninstall --deactivate --all 2>/dev/null
-  # wp plugin delete --all
+
+  #################################################################################################
+  ## uninstall default plugins
+  ## always run uninstall routine before removing instead of simple "wp plugin delete --all"
+  #################################################################################################
+  exclude_plugins_list="$(paste -sd ',' $install_plugins_file)"
+  wp plugin uninstall --deactivate --all --exlude="$exclude_plugins_list" -- 2>/dev/null
 fi
 
 if wp --url="$url" core is-installed; then
@@ -63,14 +76,16 @@ if wp --url="$url" core is-installed; then
 
   # wp theme update --all
 
-  grep -v '^ *#' /install-themes.txt | while IFS= read -r theme; do
-    if ! wp theme is-installed "$theme"; then
-      wp theme install "$theme" --activate
-    else
-      wp theme update "$theme"
-    fi
-    wp language theme install "$theme" "$language_packs" >/dev/null 2>&1
-  done
+  if [ -f "${install_themes_file}" ]; then
+    grep -v '^ *#' "${install_themes_file}" | while IFS= read -r theme; do
+      if ! wp theme is-installed "$theme"; then
+        wp theme install "$theme" --activate
+      else
+        wp theme update "$theme"
+      fi
+      wp language theme install "$theme" "$language_packs" >/dev/null 2>&1
+    done
+  fi
 
   echo >&2 "Updating Theme Translations"
   wp language theme update --all
@@ -79,16 +94,18 @@ fi
 if wp --url="$url" core is-installed; then
   echo >&2 "Preparing Plugins"
 
-  # wp plugin install --activate $(cat /plugins.txt)
+  # wp plugin install --activate $(cat "${install_plugins_file}")
 
-  grep -v '^ *#' /install-plugins.txt | while IFS= read -r plugin; do
-    if ! wp plugin is-installed "$plugin"; then
-      wp plugin install "$plugin" --activate
-    else
-      wp plugin update "$plugin"
-    fi
-    wp language plugin install "$plugin" "$language_packs" >/dev/null 2>&1
-  done
+  if [ -f "${install_plugins_file}" ]; then
+    grep -v '^ *#' "${install_plugins_file}" | while IFS= read -r plugin; do
+      if ! wp plugin is-installed "$plugin"; then
+        wp plugin install "$plugin" --activate
+      else
+        wp plugin update "$plugin"
+      fi
+      wp language plugin install "$plugin" "$language_packs" >/dev/null 2>&1
+    done
+  fi
 
   echo >&2 "Updating Plugin Translations"
   wp language plugin update --all
