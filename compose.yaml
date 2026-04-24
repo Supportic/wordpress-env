@@ -8,32 +8,34 @@ networks:
 
 services:
   ########################
-  # Wordpress
+  # Webserver & WordPress
   ########################
   wordpress:
     container_name: ${PROJECT_NAME}-wordpress
     image: ${PROJECT_NAME}/wordpress:0.0.1
     hostname: ${PROJECT_NAME}-wordpress
-    user: ${UID:-1000}
+    # dont change user, root required to init wordpress
+    # user: ${UID:-1000}
+    # working_dir: /var/www/html
     restart: unless-stopped
     build:
       context: ./.docker/service/wordpress
-      args:
-        - UID=${UID}
-        - GID=${GID}
-        - UNAME=${UNAME}
-        - GNAME=${GNAME}
-        - PASS=${PASS}
-        - WP_VERSION=${WP_VERSION}
-        - PHP_VERSION=${PHP_VERSION}
       target: develop
+      args:
+        UID: ${UID}
+        GID: ${GID}
+        PASS: ${PASS}
+        TZ: ${TZ}
+        WP_VERSION: ${WP_VERSION}
+        PHP_VERSION: ${PHP_VERSION}
     init: true
-    working_dir: /var/www/html
     volumes:
       - ./wordpress:/var/www/html
       - ./wp-dev:/home/${UNAME}/wp-dev
+      ## enable when needed locally
+      # - ./.docker/data/logs/nginx:/var/log/nginx
     env_file:
-      - .wordpress.env
+      - .docker/service/wordpress/.wordpress.env
     environment:
       WORDPRESS_DB_HOST: ${PROJECT_NAME}-db:3306
       WORDPRESS_DB_NAME: ${DB_NAME}
@@ -42,61 +44,37 @@ services:
       # for symlink.sh, absolute paths only
       DEV_DIR: /home/$UNAME/wp-dev
       WORDPRESS_DIR: /var/www/html
-    depends_on:
-      db:
-        condition: service_healthy
-      memcached:
-        condition: service_started
-    # make curl localhost possible inside this container (throws error when container shuts down quickly)
-    # post_start:
-    #   - command: bash -c "echo \"--resolve localhost:80:$(php -r 'echo gethostbyname(\"nginx\");')\" > /home/${UNAME}/.curlrc"
-    #     user: ${UID:-1000}
-
-  ########################
-  # Webserver
-  ########################
-  nginx:
-    container_name: ${PROJECT_NAME}-nginx
-    image: nginx:alpine
-    restart: unless-stopped
     ports:
       - "${WORDPRESS_PORT_HOST:-80}:80"
-    volumes:
-      - ./wordpress:/var/www/html
-      - ./.docker/data/logs/nginx:/var/log/nginx
-      - ./.docker/service/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./.docker/service/nginx/conf.d:/etc/nginx/conf.d:ro
     healthcheck:
       test: curl --fail http://localhost:${WORDPRESS_PORT_HOST:-80} || exit 1
       start_period: 10s
       interval: 60s
-      timeout: 5s
+      timeout: 10s
       retries: 3
     depends_on:
-      wordpress:
-        condition: service_started
-    post_start:
-      - command: chown -R ${UID}:${GID} /var/log/nginx
-        user: root
+      db:
+        condition: service_healthy
 
   wpcli:
     container_name: ${PROJECT_NAME}-wpcli
     image: ${PROJECT_NAME}/wpcli:0.0.1
-    user: ${UID:-1000}
+    user: ${UNAME}
     build:
       context: ./.docker/service/wpcli
       args:
-        - UID=${UID}
-        - GID=${GID}
-        - UNAME=${UNAME}
-        - GNAME=${GNAME}
-        - PASS=${PASS}
-        - PHP_VERSION=${PHP_VERSION}
+        UID: ${UID}
+        GID: ${GID}
+        UNAME: ${UNAME}
+        GNAME: ${GNAME}
+        PASS: ${PASS}
+        TZ: ${TZ}
+        PHP_VERSION: ${PHP_VERSION}
     init: true
     # make curl localhost possible inside this container
-    network_mode: "service:nginx"
+    network_mode: "service:wordpress"
     env_file:
-      - .wordpress.env
+      - .docker/service/wordpress/.wordpress.env
     environment:
       WORDPRESS_DB_HOST: ${PROJECT_NAME}-db
       WORDPRESS_DB_NAME: ${DB_NAME}
@@ -116,7 +94,7 @@ services:
   ########################
   db:
     container_name: ${PROJECT_NAME}-db
-    image: mariadb:11.4
+    image: mariadb:${MARIADB_VERSION}
     user: mysql
     restart: unless-stopped
     healthcheck:
@@ -129,21 +107,11 @@ services:
       MARIADB_DATABASE: ${DB_NAME}
       MARIADB_USER: ${DB_USER}
       MARIADB_PASSWORD: ${DB_PASS}
-      MARIADB_ROOT_PASSWORD: ${DB_ROOTPASS}
+      MARIADB_RANDOM_ROOT_PASSWORD: 1
+      # MARIADB_ROOT_PASSWORD: root
     volumes:
       - db_data:/var/lib/mysql
       - ./.docker/service/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
-
-  memcached:
-    image: memcached:alpine
-    container_name: ${PROJECT_NAME}-memcached
-    restart: unless-stopped
-    expose:
-      - 11211
-    command:
-      - --conn-limit=1024
-      - --memory-limit=64
-      - --threads=4
 
   ########################
   # Database UI
@@ -180,4 +148,4 @@ services:
     ports:
       - "${MAILPIT_PORT_HOST:-8025}:8025" # web ui
     environment:
-      TZ: Europe/Berlin
+      TZ: ${TZ}

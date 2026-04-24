@@ -5,9 +5,19 @@ LABEL autodelete="true"
 
 USER root
 
-RUN apk add --no-cache shadow bash sudo
+RUN apk add --no-cache shadow bash sudo nano tzdata zip unzip
 
-# setup User
+##########################################################################
+## set the container timezone
+##########################################################################
+
+ENV TZ=${TZ:-"Europe/Berlin"}
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime
+
+##########################################################################
+## setup user
+##########################################################################
+
 ARG UID="${UID}"
 ARG GID="${GID}"
 ARG UNAME="${UNAME}"
@@ -20,13 +30,13 @@ RUN set -ex \
   # add group
   && addgroup --gid "${GID}" "${GNAME}" \
   # add user (-D no password => set afterwards)
-  && adduser -D -G "${GNAME}" --uid "${UID}" --gecos "" --shell /bin/bash "${UNAME}" \
+  && adduser -D --gecos "" --uid "${UID}" -G "${GNAME}" --shell /bin/bash "${UNAME}" \
   # add more groups
   # &&  addgroup "${UNAME}" sudo \
   # set user PW
   && echo "${UNAME}:${PASS}" | chpasswd \
-  # shell prompt
-  && printf "\nPS1=\"\\\u@\\\h:\\\w# \"\nalias ll=\"ls -la\"" >> "/home/${UNAME}/.bashrc" \
+  # shell prompt (no default .bashrc without includes)
+  && printf "\nPS1=\"\\\u@\\\h:\\\w# \"\nalias ll=\"ls -la\"\n" > "/home/${UNAME}/.bashrc" \
   && chown "${UNAME}:${GNAME}" "/home/${UNAME}/.bashrc"
 
 ## allow user to use sudo commands without password

@@ -1,7 +1,5 @@
 /.env
 
-/.docker/data/logs/nginx/*
-
 /wordpress/*
 /wp-dev/themes/*
 /wp-dev/plugins/*
@@ -17,4 +15,3 @@
 # | this will ignore the content but not the director itself.  |
 # +------------------------------------------------------------+
 !.gitkeep
-!.gitignore

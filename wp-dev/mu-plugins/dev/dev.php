@@ -35,7 +35,6 @@ function is_login_page()
     return in_array($GLOBALS['pagenow'] ?? '', $login_pages, true);
 }
 
-include_once __DIR__.'/tools/docker-loopback.php';
 include_once __DIR__.'/tools/disable-updates.php';
 include_once __DIR__.'/tools/redirect-logged-in.php';
 include_once __DIR__.'/tools/auto-login-user-switcher.php';
@@ -43,4 +42,3 @@ include_once __DIR__.'/tools/remove-comments.php';
 include_once __DIR__.'/tools/admin-menu.php';
 include_once __DIR__.'/tools/mailpit.php';
 include_once __DIR__.'/tools/qof.php';
-include_once __DIR__.'/tools/qm.php';

@@ -3,8 +3,8 @@
 SHELL = /bin/bash
 MAKEFLAGS += --no-print-directory
 
-WORDPRESS_BASH_EXEC = docker compose exec wordpress bash
-WORDPRESS_BASH_RUN = docker compose run --rm wordpress bash
+WORDPRESS_BASH_EXEC = docker compose exec --user www-data wordpress bash
+WORDPRESS_BASH_RUN = docker compose run --rm --user www-data --entrypoint bash wordpress
 WPCLI_BASH_RUN = docker compose run --rm wpcli bash
 WP_CLI_RUN = docker compose run --rm wpcli wp
 
@@ -18,7 +18,7 @@ wpcli:
 ###############################
 
 start:
-	docker compose up -d wordpress db nginx memcached adminer mailpit
+	docker compose up -d wordpress db adminer mailpit
 stop:
 	docker compose stop
 down:
@@ -54,11 +54,11 @@ install-precondition:
 		exit 1;\
 	fi
 
-update-images: install-images down start
+rebuild: install-images restart
 
 install-images:
 	docker compose build --pull wordpress wpcli
-	docker compose pull db memcached adminer mailpit
+	docker compose pull db adminer mailpit
 	@docker rmi $$(docker images -q -f "dangling=true" -f "label=autodelete=true") > /dev/null 2>&1 || true
 
 install-wordpress:
@@ -75,9 +75,8 @@ delete-wordpress:
 log:
 	tail -f -n 30 wordpress/wp-content/debug.log 2> /dev/null
 clean-log:
-	rm -f wordpress/wp-content/debug.log; touch wordpress/wp-content/debug.log
+	echo "" > wordpress/wp-content/debug.log;
 cc:
-	$(WP_CLI_RUN) w3tc flush all
 	$(WP_CLI_RUN) cache flush
 
 symlink-docker-create:

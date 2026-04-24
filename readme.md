@@ -25,7 +25,6 @@ Mailpit: [http://localhost:8025](http://localhost:8025)
 - Copy `.env.sample` -> `.env` and adjust variables.
 - Place your theme, plugin, mu-plugins inside the wp-dev directory.
 - execute `make install`
-- go to backend w3-total-cache plugin settings and press skip
 
 ## Install Multisite
 
@@ -51,15 +50,3 @@ If you want to make sure all symlinks are in sync (broken,new,current) you can r
 WordPress options: https://codex.wordpress.org/Option_Reference
 
 Might need to define PHP variables WP_SITEURL and WP_HOME in the future.
-
-## Known issues
-
-### w3-total-cache: db.php already exists
-
-[https://querymonitor.com/help/db-php-symlink/#when-an-existing-db-php-file-is-already-in-place](https://querymonitor.com/help/db-php-symlink/#when-an-existing-db-php-file-is-already-in-place)
-
-Query-Monitor creates its own db.php file to improve db queries.  
-w3-total-cache also wants to create it's own db.php file but only one may exist in wp-content.
-
-To prevent this on installation there is a mu-plugin which deletes the symlink when it comes from query-monitor.  
-The `QM_DB_SYMLINK` variable only replaces the symlink with a real copy. It does not prevent the creation of the file.
