@@ -33,7 +33,7 @@ services:
       - ./wordpress:/var/www/html
       - ./wp-dev:/home/${UNAME}/wp-dev
       ## enable when needed locally
-      # - ./.docker/data/logs/nginx:/var/log/nginx
+      # - ./.docker/data/logs/nginx:/var/log/nginx:r
     env_file:
       - .docker/service/wordpress/.wordpress.env
     environment:

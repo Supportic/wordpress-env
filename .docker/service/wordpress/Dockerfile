@@ -86,7 +86,12 @@ COPY --chmod=0755 symlink.sh /usr/local/bin/symlink
 ## configure nginx + php-fpm
 ##########################################################################
 
-RUN mkdir -p /var/lib/nginx /var/log/nginx /var/cache/nginx
+RUN mkdir -p /var/lib/nginx /var/log/nginx /var/cache/nginx \
+  # created by nginx
+  && rm -rf /var/www/localhost \
+  # forward request and error logs to docker log collector
+  && ln -sf /dev/stdout /var/log/nginx/server.access.log \
+  && ln -sf /dev/stderr /var/log/nginx/server.error.log
 
 COPY nginx/nginx.conf /etc/nginx/nginx.conf
 COPY nginx/conf.d /etc/nginx/conf.d
