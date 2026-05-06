@@ -4,10 +4,6 @@ declare(strict_types=1);
 
 /*
 Plugin Name:  Auto Login User Switcher
-Version:      1.0.1
-Author:       Supportic
-Text Domain:  wpdev-auto-login-user-switcher
-License:      MIT
 */
 
 /**
@@ -56,7 +52,7 @@ function wpdev_add_auto_login_user_switcher()
     // first entry is empty, to enable username/paassword login
     $selectOptions = sprintf(
         '<option value="" disabled selected>%s</option>',
-        esc_html__('-- select a user --', 'wpdev')
+        esc_html__('-- select a user --', 'local-wpdev')
     );
     foreach ($users as $user) {
         $selectOptions .= sprintf(
@@ -69,7 +65,7 @@ function wpdev_add_auto_login_user_switcher()
 ?>
     <div class="auto-login-user-switcher-wrap" style="margin-bottom: 20px;">
         <label for="auto-login-user-switcher">
-            <?php esc_html_e('Auto Login User:', 'wpdev'); ?>
+            <?php esc_html_e('Auto Login User:', 'local-wpdev'); ?>
         </label>
         <select name="auto_login_user_switcher_user_id" id="auto-login-user-switcher" style="width: 100%;">
             <?php echo $selectOptions ?>
@@ -120,8 +116,11 @@ add_action('login_enqueue_scripts', 'wpdev_add_auto_login_user_switcher_script')
  * @param string                $password The password submitted.
  * @return null|WP_User|WP_Error The user object or error.
  */
-function wpdev_bypass_authenticate_for_auto_login_user_switcher($user, $username, $password)
-{
+function wpdev_bypass_authenticate_for_auto_login_user_switcher(
+    null|WP_User|WP_Error $user,
+    string $username,
+    string $password
+): null|WP_User|WP_Error {
     // If we are NOT local OR NOT on the login page, bail.
     if (!is_local_environment() || !is_login_page() || $_SERVER['REQUEST_METHOD'] !== 'POST') {
         return $user;
@@ -139,7 +138,7 @@ function wpdev_bypass_authenticate_for_auto_login_user_switcher($user, $username
     if (!isset($_POST['auto_login_user_switcher_nonce'])) {
         return new WP_Error(
             'invalid_auto_login_nonce',
-            __('Nonce token is missing. Your session may have expired. Please refresh and try again.', 'wpdev')
+            __('Nonce token is missing. Your session may have expired. Please refresh and try again.', 'local-wpdev')
         );
     }
 
@@ -162,7 +161,7 @@ function wpdev_bypass_authenticate_for_auto_login_user_switcher($user, $username
     if ($isVerifiedNonce === false) {
         return new WP_Error(
             'invalid_auto_login_nonce',
-            __('Invalid or expired nonce token. Cookies may have been cleared. Please reload the login page.', 'wpdev')
+            __('Invalid or expired nonce token. Cookies may have been cleared. Please reload the login page.', 'local-wpdev')
         );
     }
 
@@ -171,7 +170,7 @@ function wpdev_bypass_authenticate_for_auto_login_user_switcher($user, $username
     $user = get_user_by('id', $autoLoginUserId);
 
     if (!$user instanceof WP_User) {
-        return new WP_Error('invalid_user', __('Login failed. Invalid user ID.', 'wpdev'));
+        return new WP_Error('invalid_user', __('Login failed. Invalid user ID.', 'local-wpdev'));
     }
 
     // user has switched during reauth
@@ -187,8 +186,11 @@ add_filter('authenticate', 'wpdev_bypass_authenticate_for_auto_login_user_switch
 /**
  * Handle login redirect when user has switched during reauth
  */
-function wpdev_handle_login_redirect_on_user_switch($redirect_to, $requested_redirect_to, $user)
-{
+function wpdev_handle_login_redirect_on_user_switch(
+    string $redirect_to,
+    string $requested_redirect_to,
+    WP_User|WP_Error $user
+) {
     // Only handle if we detected a user switch
     if (!get_transient('auto_login_user_switcher_user_changed')) {
         return $redirect_to;
@@ -204,7 +206,7 @@ add_filter('login_redirect', 'wpdev_handle_login_redirect_on_user_switch', 10, 3
 /**
  * Legacy code, not used anymore, kept for reference.
  */
-function wpdev_handle_auto_login_user_switcher($user_login, $user)
+function wpdev_handle_auto_login_user_switcher(string $user_login, $user)
 {
     // Check if the auto-login form was submitted with the correct action and nonce.
     $is_auto_login_action = isset($_POST['auto_login_user_switcher_action']) && $_POST['auto_login_user_switcher_action'] === 'auto_login_user';
@@ -222,7 +224,7 @@ function wpdev_handle_auto_login_user_switcher($user_login, $user)
     if ($is_verified_nonce === false) {
         wp_clear_auth_cookie();
         wp_destroy_current_session();
-        wp_die(esc_html__('You do not have permissions to perform this action.', 'wpdev'), esc_html__('Permission Denied', 'wpdev'), ['response' => 403, 'back_link' => true]);
+        wp_die(esc_html__('You do not have permissions to perform this action.', 'local-wpdev'), esc_html__('Permission Denied', 'local-wpdev'), ['response' => 403, 'back_link' => true]);
     }
 
     // Log the new user in by clearing old cookies and setting new ones.
@@ -257,7 +259,7 @@ function wpdev_handle_auto_login_user_switcher($user_login, $user)
     }
 
     // Handle interim login (overlay/popup after session timeout)
-    $message = '<p class="message">' . esc_html__('You have logged in successfully.', 'wpdev') . '</p>';
+    $message = '<p class="message">' . esc_html__('You have logged in successfully.', 'local-wpdev') . '</p>';
     login_header('', $message);
 
 ?>

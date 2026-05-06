@@ -3,11 +3,8 @@
 declare(strict_types=1);
 
 /*
-Plugin Name:  Redirect logged in user on login page to dashboard
-Version:      1.0.1
-Author:       Supportic
-Text Domain:  wpdev-redirect-logged-in
-License:      MIT License
+Plugin Name:  Redirect logged-in users
+Description:  Redirect logged-in user from login page to dashboard
 */
 
 // /wp-login.php

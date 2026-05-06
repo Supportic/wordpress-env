@@ -12,8 +12,8 @@ function wpdev_register_adminer_menu()
 {
     add_submenu_page(
         'wpenv',
-        __('Books Shortcode Reference', 'wpdev'),
-        __('Open Adminer', 'wpdev'),
+        __('Books Shortcode Reference', 'local-wpdev'),
+        __('Open Adminer', 'local-wpdev'),
         'manage_options',
         'wpdev_redirect_adminer',
         // 'wpdev_redirect_adminer_item'

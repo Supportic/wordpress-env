@@ -4,10 +4,6 @@ declare(strict_types=1);
 
 /*
 Plugin Name:  Admin Menu
-Version:      1.0.0
-Author:       Supportic
-Text Domain:  wpdev-admin-menu
-License:      MIT
 */
 
 // Exit if accessed directly outside wordpress context.
@@ -20,7 +16,7 @@ function wpdev_register_main_menu()
 {
     $parentSlug = 'wpenv';
     add_menu_page(
-        __('WPEnv', 'wpdev'),
+        __('WPEnv', 'local-wpdev'),
         'WPEnv',
         'manage_options',
         $parentSlug,
@@ -68,7 +64,7 @@ add_action('admin_menu', 'wpdev_register_main_menu');
  */
 // function wpdev_main_menu()
 // {
-    // echo '<div class="wrap"><h1>WPEnv Dashboard</h1></div>';
+// echo '<div class="wrap"><h1>WPEnv Dashboard</h1></div>';
 // }
 
 include_once __DIR__ . '/admin-menu/redirect-adminer-item.php';

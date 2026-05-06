@@ -45,13 +45,7 @@ services:
       DEV_DIR: /home/$UNAME/wp-dev
       WORDPRESS_DIR: /var/www/html
     ports:
-      - "${WORDPRESS_PORT_HOST:-80}:80"
-    healthcheck:
-      test: curl --fail http://localhost:${WORDPRESS_PORT_HOST:-80} || exit 1
-      start_period: 10s
-      interval: 60s
-      timeout: 10s
-      retries: 3
+      - "127.0.0.1:${WORDPRESS_PORT_HOST:-80}:80"
     depends_on:
       db:
         condition: service_healthy
@@ -131,7 +125,7 @@ services:
       # ADMINER_DEFAULT_SERVER: "db"
       ADMINER_SERVERS_JSON: '[{"server":"db:3306","username":"${DB_USER}","password":"${DB_PASS}","db":"${DB_NAME}","label":"Local Dev WordPress"}]'
     ports:
-      - "${ADMINER_PORT_HOST:-8080}:8080" # web ui
+      - "127.0.0.1:${ADMINER_PORT_HOST:-8080}:8080" # web ui
     volumes:
       - ./.docker/service/adminer/plugins/autologin.php:/var/www/html/plugins/autologin.php
       - ./.docker/service/adminer/plugins-enabled/autologin.php:/var/www/html/plugins-enabled/autologin.php
@@ -146,6 +140,6 @@ services:
     expose:
       - 1025 # smtp server
     ports:
-      - "${MAILPIT_PORT_HOST:-8025}:8025" # web ui
+      - "127.0.0.1:${MAILPIT_PORT_HOST:-8025}:8025" # web ui
     environment:
       TZ: ${TZ}

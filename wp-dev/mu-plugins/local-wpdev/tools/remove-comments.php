@@ -5,10 +5,6 @@ declare(strict_types=1);
 /*
 Plugin Name:  Remove Comments
 Description:  Remove comment post type support, hide existing comments, and remove comments-related items from the admin interface.
-Version:      1.0.0
-Author:       Supportic
-Text Domain:  wpdev-remove-comments
-License:      MIT License
 */
 
 // Exit if accessed directly outside wordpress context.
