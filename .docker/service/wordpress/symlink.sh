@@ -57,7 +57,7 @@ function find_files() {
   trim "$FILES"
 }
 
-function create_user() {
+function create_user_assets() {
   dev_dir_exists || exit 1;
 
   local SYNC_DIRS SYNC_FILES COMBINED_LIST ALLOWED_DIRS
@@ -66,9 +66,11 @@ function create_user() {
   # SYNC_DIRS=$(find_dirs "${ALLOWED_DIRS[@]}")
 
   ALLOWED_DIRS="mu-plugins plugins themes"
+  # shellcheck disable=SC2086
   SYNC_DIRS=$(find_dirs $ALLOWED_DIRS)
 
   ALLOWED_DIRS="mu-plugins plugins"
+  # shellcheck disable=SC2086
   SYNC_FILES=$(find_files $ALLOWED_DIRS)
 
   COMBINED_LIST="$SYNC_DIRS $SYNC_FILES"
@@ -100,15 +102,17 @@ function create_user() {
   echo "Symlinking complete."
 }
 
-function remove_user() {
+function remove_user_assets() {
   dev_dir_exists || exit 1;
 
   local SYNC_DIRS SYNC_FILES COMBINED_LIST ALLOWED_DIRS WP_DIR_TYPE SRC_ITEM_NAME TARGET_PATH
 
   ALLOWED_DIRS="mu-plugins plugins themes"
+  # shellcheck disable=SC2086
   SYNC_DIRS=$(find_dirs $ALLOWED_DIRS)
 
   ALLOWED_DIRS="mu-plugins plugins"
+  # shellcheck disable=SC2086
   SYNC_FILES=$(find_files $ALLOWED_DIRS)
 
   COMBINED_LIST="$SYNC_DIRS $SYNC_FILES"
@@ -124,7 +128,14 @@ function remove_user() {
     TARGET_PATH="$WP_CONTENT_DIR/$WP_DIR_TYPE/$SRC_ITEM_NAME"
 
     if [ ! -L "$TARGET_PATH" ]; then
-      echo "  Symlink $TARGET_PATH does not exist, skipping"
+
+      if [ -d "$TARGET_PATH" ] || [ -f "$TARGET_PATH" ]; then
+        echo "  Removing orphaned $TARGET_PATH"
+        rm -rf "$TARGET_PATH"
+      else
+        echo "  Symlink $TARGET_PATH does not exist, skipping"
+      fi
+
       continue
     fi
 
@@ -135,7 +146,7 @@ function remove_user() {
   echo "Removing symlinks complete."
 }
 
-function remove_broken() {
+function remove_broken_assets() {
   local BROKEN_LINKS
 
   # Find all broken symlinks in WP_CONTENT_DIR
@@ -180,22 +191,22 @@ function main() {
   case "$1" in
 
     "create")
-      create_user;
+      create_user_assets;
       ;;
 
     "remove")
-      remove_user;
-      remove_broken;
+      remove_user_assets;
+      remove_broken_assets;
       ;;
 
     "remove-broken")
-      remove_broken;
+      remove_broken_assets;
       ;;
 
     "recreate")
-      remove_user;
-      remove_broken;
-      create_user;
+      remove_user_assets;
+      remove_broken_assets;
+      create_user_assets;
       ;;
 
     *)
