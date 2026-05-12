@@ -72,10 +72,14 @@ delete-wordpress:
 	@find wordpress -maxdepth 1 -mindepth 1 ! -name '.gitkeep' -exec rm -rf {} +
 	@echo "WordPress files deleted."
 
-log:
+debug-log:
 	tail -f -n 30 wordpress/wp-content/debug.log 2> /dev/null
 clean-log:
 	echo "" > wordpress/wp-content/debug.log;
+clear-console:
+	clear
+log: clean-log clear-console debug-log
+
 cc:
 	$(WP_CLI_RUN) cache flush
 
