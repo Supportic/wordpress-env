@@ -56,6 +56,9 @@ services:
     user: ${UNAME}
     build:
       context: ./.docker/service/wpcli
+      # copy the ini file from wordpress context
+      additional_contexts:
+        - configs=./.docker/service/wordpress
       args:
         UID: ${UID}
         GID: ${GID}

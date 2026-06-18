@@ -39,6 +39,16 @@ RUN set -ex \
   && printf "\nPS1=\"\\\u@\\\h:\\\w# \"\nalias ll=\"ls -la\"\n" > "/home/${UNAME}/.bashrc" \
   && chown "${UNAME}:${GNAME}" "/home/${UNAME}/.bashrc"
 
+##########################################################################
+## COPY custom.ini $PHP_INI_DIR/conf.d/
+## /usr/local/etc/php/conf.d/php.ini
+##########################################################################
+
+# Use the default develop configuration
+RUN mv "$PHP_INI_DIR/php.ini-development" "$PHP_INI_DIR/php.ini"
+# copy ini file from wordpress context
+COPY --from=configs php/php.ini "$PHP_INI_DIR/conf.d/"
+
 ## allow user to use sudo commands without password
 # RUN set -ex \
 #   && echo "${UNAME} ALL=(ALL) ALL" > /etc/sudoers.d/${UNAME} \
