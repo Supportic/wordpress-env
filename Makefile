@@ -69,7 +69,7 @@ install-wordpress:
 delete-wordpress:
 	$(MAKE) symlink-docker-remove
 	@echo "Deleting WordPress files..."
-	@find wordpress -maxdepth 1 -mindepth 1 ! -name '.gitkeep' -exec rm -rf {} +
+	@find wordpress -maxdepth 1 -mindepth 1 ! -name '.gitkeep' ! -name '.gitignore' -exec rm -rf {} +
 	@echo "WordPress files deleted."
 
 debug-log:
