@@ -54,6 +54,7 @@ COPY --from=configs php/php.ini "$PHP_INI_DIR/conf.d/"
 #   && echo "${UNAME} ALL=(ALL) ALL" > /etc/sudoers.d/${UNAME} \
 #   && chmod 0440 /etc/sudoers.d/${UNAME}
 
+# global wp-cli config
 RUN mkdir -p /home/${UNAME}/.wp-cli && chown "${UNAME}:${GNAME}" /home/${UNAME}/.wp-cli
 COPY --chown=${UID}:${GID} wp-cli.yml /home/${UNAME}/.wp-cli/config.yml
 

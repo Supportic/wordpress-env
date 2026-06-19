@@ -94,6 +94,9 @@ RUN mkdir -p /var/lib/nginx /var/log/nginx /var/cache/nginx \
   && ln -sf /dev/stdout /var/log/nginx/server.access.log \
   && ln -sf /dev/stderr /var/log/nginx/server.error.log
 
+# fix nginx permissions when accessing tmp directory for uploads in /var/lib/nginx/tmp
+RUN chown -R "${UNAME}:${GNAME}" /var/lib/nginx /var/log/nginx /var/cache/nginx
+
 COPY nginx/nginx.conf /etc/nginx/nginx.conf
 COPY nginx/conf.d /etc/nginx/conf.d
 

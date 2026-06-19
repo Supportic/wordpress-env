@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 # run the official WordPress entrypoint to initialize WordPress files and permissions
