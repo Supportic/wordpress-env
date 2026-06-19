@@ -54,6 +54,10 @@ COPY --from=configs php/php.ini "$PHP_INI_DIR/conf.d/"
 #   && echo "${UNAME} ALL=(ALL) ALL" > /etc/sudoers.d/${UNAME} \
 #   && chmod 0440 /etc/sudoers.d/${UNAME}
 
+RUN mkdir -p /home/${UNAME}/.wp-cli && chown "${UNAME}:${GNAME}" /home/${UNAME}/.wp-cli
+COPY --chown=${UID}:${GID} wp-cli.yml /home/${UNAME}/.wp-cli/config.yml
+
 COPY install-plugins.txt /install-plugins.txt
 COPY install-themes.txt /install-themes.txt
 COPY --chown=${UID}:${GID} --chmod=0755 setup-wordpress.sh /usr/local/bin/setup-wordpress
+COPY --from=configs --chown=${UID}:${GID} --chmod=0755 backup.sh /usr/local/bin/backup

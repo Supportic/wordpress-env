@@ -81,6 +81,7 @@ RUN usermod -aG sudo "${UNAME}" &&\
   printf "Defaults lecture = never" > /etc/sudoers.d/privacy
 
 COPY --chmod=0755 symlink.sh /usr/local/bin/symlink
+COPY --chmod=0755 backup.sh /usr/local/bin/backup
 
 ##########################################################################
 ## configure nginx + php-fpm

@@ -31,7 +31,7 @@ services:
     init: true
     volumes:
       - ./wordpress:/var/www/html
-      - ./wp-dev:/home/${UNAME}/wp-dev
+      - ./wp-dev:/home/www-data/wp-dev
       ## enable when needed locally
       # - ./.docker/data/logs/nginx:/var/log/nginx:r
     env_file:
@@ -42,7 +42,7 @@ services:
       WORDPRESS_DB_USER: ${DB_USER}
       WORDPRESS_DB_PASSWORD: ${DB_PASS}
       # for symlink.sh, absolute paths only
-      DEV_DIR: /home/$UNAME/wp-dev
+      DEV_DIR: /home/www-data/wp-dev
       WORDPRESS_DIR: /var/www/html
     ports:
       - "127.0.0.1:${WORDPRESS_PORT_HOST:-80}:80"
@@ -80,8 +80,9 @@ services:
       # for setup-wordpress.sh
       WORDPRESS_PORT_HOST: ${WORDPRESS_PORT_HOST:-80}
     # mirrors filesystem of the listed services
-    volumes_from:
-      - wordpress
+    volumes:
+      - ./wordpress:/var/www/html
+      - ./backups:/backups
     depends_on:
       db:
         condition: service_healthy

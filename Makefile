@@ -38,9 +38,18 @@ reset:
 	$(WP_CLI_RUN) db reset --defaults --yes
 	$(MAKE) install-wordpress
 
-backup:
-	$(WP_CLI_RUN) db export wp-content/backup.sql --add-drop-table
-	zip -rq backup.zip wordpress/wp-content
+backup: symlink-docker-remove
+	$(WPCLI_BASH_RUN) -c "backup create full"
+	$(MAKE) symlink-docker-create
+backup-content: symlink-docker-remove
+	$(WPCLI_BASH_RUN) -c "backup create content"
+	$(MAKE) symlink-docker-create
+backup-database:
+	$(WPCLI_BASH_RUN) -c "backup create database"
+import:
+	docker compose run --rm -it -w /backups wpcli bash -c "printf \"\nExecute: backup import [full|content|database] /backups/<filename>\n\n\"; exec bash"
+	$(MAKE) symlink-docker-recreate
+
 import-backup:
 	unzip -oq backup.zip
 	$(WP_CLI_RUN) db import wp-content/backup.sql

@@ -1,2 +1,3 @@
 # https://make.wordpress.org/cli/handbook/references/config/
-url: http://localhost
+# url: http://localhost
+path: /var/www/html
