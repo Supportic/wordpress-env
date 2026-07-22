@@ -47,9 +47,15 @@ backup-content: symlink-docker-remove
 backup-database:
 	$(WPCLI_BASH_RUN) -c "backup create database"
 import:
-	docker compose run --rm -it -w /backups wpcli bash -c "printf \"\nExecute: backup import [full|content|database] /backups/<filename>\n\n\"; exec bash"
+	docker compose run --rm -it -w /backups --entrypoint backup wpcli import full
 	$(WP_CLI_RUN) core update-db
 	$(MAKE) symlink-docker-recreate
+import-content:
+	docker compose run --rm -it -w /backups --entrypoint backup wpcli import content
+	$(MAKE) symlink-docker-recreate
+import-database:
+	docker compose run --rm -it -w /backups --entrypoint backup wpcli import database
+	$(WP_CLI_RUN) core update-db
 
 install-precondition:
 	@if [ ! -f .env ]; then\

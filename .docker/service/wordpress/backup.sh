@@ -14,20 +14,42 @@ WP_CONTENT_DIR="${WP_ROOT_DIR}/wp-content"
 BACKUP_DIR="${BACKUP_DIR:-/backups}" # Adjust default when needed
 BACKUP_DIR="${BACKUP_DIR%/}" # Remove trailing slash
 
+VALID_MODES=("full" "content" "database")
+
+function validate_mode() {
+  local mode_to_check="${1:-}"
+
+  for valid in "${VALID_MODES[@]}"; do
+    if [ "${mode_to_check}" == "${valid}" ]; then
+      return 0
+    fi
+  done
+
+  # Join modes with comma and space
+  local allowed_modes
+  allowed_modes=$(IFS=', '; echo "${VALID_MODES[*]}")
+
+  printf "Invalid mode: %s\n" "${mode_to_check}"
+  printf "Allowed modes: %s\n" "${allowed_modes}"
+  return 1
+}
+
 # $1 - backup mode: full, content, or database
 function backup_create() {
 
   local backup_mode="${1:-full}"
+
   if [ -z "${1}" ]; then
     printf "Backup mode not specified. Defaulting to 'full'.\n"
   fi
 
-  if [ "${backup_mode}" != "full" ] && [ "${backup_mode}" != "content" ] && [ "${backup_mode}" != "database" ]; then
-    printf "Invalid backup mode: %s\n" "${backup_mode}"
+  if ! validate_mode "${backup_mode}"; then
     programname=$(basename "${0}")
-    printf "Usage: %s create [full|content|database]\n" "${programname}"
+    printf "Usage: %s create [%s]\n" "${programname}" "$(IFS='|'; echo "${VALID_MODES[*]}")"
     exit 22
   fi
+
+  printf "\nRunning: %s create %s\n\n" "${programname}" "${backup_mode}"
 
   TIMESTAMP=$(date +%Y-%m-%d-%H%M)
   local db_file_path
@@ -82,28 +104,42 @@ function backup_create() {
 # $1 - backup mode: full, content, or database
 # $2 - path to the backup file (.tar.gz or .sql)
 function backup_import() {
-  local backup_mode="${1:-full}"
+  local import_mode="${1:-full}"
   local file_path="${2:-}"
+  local programname
+  programname=$(basename "${0}")
 
-  if [ -z "${1}" ] || [ -z "${file_path}" ]; then
-    printf "Usage: %s import [full|content|database] /path/to/backup/file\n" "$(basename "${0}")"
+  if [ -z "${1}" ]; then
+    printf "Import mode not specified. Defaulting to 'full'.\n"
+  fi
+
+  if ! validate_mode "${import_mode}"; then
+    printf "Usage: %s import [%s] [file_path]\n\n" "${programname}" "$(IFS='|'; echo "${VALID_MODES[*]}")"
     exit 22
   fi
 
-  if [ "${backup_mode}" != "full" ] && [ "${backup_mode}" != "content" ] && [ "${backup_mode}" != "database" ]; then
-    printf "Invalid backup mode: %s\n" "${backup_mode}"
-    exit 22
-  fi
-
-  if [ ! -f "${file_path}" ]; then
-    printf "[Error] Backup file not found: %s\n" "${file_path}"
-    exit 1
-  fi
+  printf "\nRunning: %s import %s /backups/<filename>\n\n" "${programname}" "${import_mode}"
 
   # ----------------------------------------------------
   # DATABASE ONLY MODE (.sql file expected)
   # ----------------------------------------------------
-  if [ "${backup_mode}" == "database" ]; then
+  if [ "${import_mode}" == "database" ]; then
+    if [ -z "${file_path}" ]; then
+      read -e -r -p "Enter path to SQL file: " file_path || true
+    fi
+
+    ext="${file_path##*.}"
+    if [ -z "${file_path}" ]; then
+      printf "[Error] Valid SQL file path is required.\n"
+      exit 1
+    elif [ ! -f "${file_path}" ]; then
+      printf "[Error] File not found: '%s'\n" "${file_path}"
+      exit 1
+    elif [ "${ext,,}" != "sql" ]; then
+      printf "[Error] File: '%s' is not a valid SQL file.\n" "${file_path}"
+      exit 1
+    fi
+
     printf "Importing database from %s...\n" "${file_path}"
     if wp db import "${file_path}"; then
       printf "Database successfully imported!\n"
@@ -117,6 +153,22 @@ function backup_import() {
   # ----------------------------------------------------
   # ARCHIVE MODES (full or content - .tar.gz expected)
   # ----------------------------------------------------
+  if [ -z "${file_path}" ]; then
+    read -e -r -p "Enter path to backup file: " file_path || true
+  fi
+
+  ext="${file_path##*.}"
+  if [ -z "${file_path}" ]; then
+    printf "[Error] Valid backup file path is required.\n"
+    exit 1
+  elif [ ! -f "${file_path}" ]; then
+    printf "[Error] File not found: '%s'\n" "${file_path}"
+    exit 1
+  elif [ "${ext,,}" != "tar.gz" ]; then
+    printf "[Error] File: '%s' is not a valid backup file.\n" "${file_path}"
+    exit 1
+  fi
+
   local temp_extract_dir
   temp_extract_dir=$(mktemp -d -t wp-import-XXXXXXXXXX)
 
@@ -128,9 +180,11 @@ function backup_import() {
   fi
 
   # 1. Restore wp-content
-  if [ "${backup_mode}" == "full" ] || [ "${backup_mode}" == "content" ]; then
-    local extracted_content
+  if [ "${import_mode}" == "full" ] || [ "${import_mode}" == "content" ]; then
+    local extracted_content import_content_success import_database_success
     extracted_content="${temp_extract_dir}/$(basename "${WP_CONTENT_DIR}")"
+    import_content_success=false
+    import_database_success=false
 
     if [ -d "${extracted_content}" ]; then
       printf "Restoring wp-content directory...\n"
@@ -138,49 +192,67 @@ function backup_import() {
       rm -rf "${WP_CONTENT_DIR}"
       mkdir -p "$(dirname "${WP_CONTENT_DIR}")"
       mv "${extracted_content}" "${WP_CONTENT_DIR}"
+      import_content_success=true
+      printf "wp-content directory restored!\n"
     else
-      printf "[Warning] wp-content not found in the archive!\n"
+      [ "${import_mode}" == "content" ] && printf "[Error] wp-content directory not found in the archive! Cannot restore content.\n" && exit 1
+      printf "[Warning] wp-content directory not found in the archive! Skipping content restoration.\n"
     fi
   fi
 
   # 2. Restore database from full backup
-  if [ "${backup_mode}" == "full" ]; then
+  if [ "${import_mode}" == "full" ]; then
     # Look for the .sql file unpacked at the root level of the temp directory
     local extracted_sql
     extracted_sql=$(find "${temp_extract_dir}" -maxdepth 1 -name "db-*.sql" | head -n 1)
 
     if [ -f "${extracted_sql}" ]; then
-      printf "Importing database from archive (%s)...\n" "$(basename "${extracted_sql}")"
+      printf "Importing database (%s) from archive ...\n" "$(basename "${extracted_sql}")"
       if ! wp db import "${extracted_sql}"; then
         printf "\n[Error] Database import failed during full restoration!\n\n"
         rm -rf "${temp_extract_dir}"
         exit 1
       fi
+      import_database_success=true
+      printf "Database imported.\n"
     else
-      printf "[Error] Database file missing from full backup archive!\n"
-      rm -rf "${temp_extract_dir}"
-      exit 1
+      printf "[Warning] Database SQL file missing in backup archive! Skipping database import.\n"
     fi
   fi
 
   # Cleanup temp files
   rm -rf "${temp_extract_dir}"
-  printf "Import completed successfully!\n"
+
+  if [ "${import_mode}" == "full" ]; then
+    if [ "${import_content_success}" == true ] && [ "${import_database_success}" == true ]; then
+      printf "Full backup import completed successfully!\n"
+    else
+      printf "[Warning] Full backup import completed with warnings.\n"
+    fi
+  elif [ "${import_mode}" == "content" ]; then
+    if [ "${import_content_success}" == true ]; then
+      printf "Content backup import completed successfully!\n"
+    else
+      printf "[Warning] Content backup import completed with warnings.\n"
+    fi
+  fi
+
   exit 0
 }
 
 function main() {
   local programname usage
   programname=$(basename "${0}")
-  usage="Usage: ${programname} <create|import>"
+  usage="Usage: ${programname} <create|import> [mode] [file_path]"
 
   # check whether user had supplied -h or --help
   if [[ "$*" == "--help" || "$*" == "-h" ]]; then
     printf "This script creates and imports WordPress backups.\n\n"
+    printf "%s\n" "${usage}"
     exit 0
   elif [ $# == 0 ] || [ -z "$1" ]; then
     printf "Insufficient amount of arguments!\n\n"
-    echo "${usage}"
+    printf "%s\n" "${usage}"
     exit 1
   fi
 
@@ -198,9 +270,10 @@ function main() {
     "import")
       backup_import "${2:-}" "${3:-}";
       ;;
+
     *)
-      printf "Invalid argument: %s\n\n" "${1}"
-      echo "${usage}"
+      printf "Invalid argument: %s\n" "${1}"
+      printf "%s\n\n" "${usage}"
       exit 22
       ;;
   esac
