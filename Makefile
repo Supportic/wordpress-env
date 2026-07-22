@@ -48,14 +48,8 @@ backup-database:
 	$(WPCLI_BASH_RUN) -c "backup create database"
 import:
 	docker compose run --rm -it -w /backups wpcli bash -c "printf \"\nExecute: backup import [full|content|database] /backups/<filename>\n\n\"; exec bash"
-	$(MAKE) symlink-docker-recreate
-
-import-backup:
-	unzip -oq backup.zip
-	$(WP_CLI_RUN) db import wp-content/backup.sql
-	rm -rf wordpress/wp-content/backup.sql
 	$(WP_CLI_RUN) core update-db
-	$(MAKE) symlink-docker-create
+	$(MAKE) symlink-docker-recreate
 
 install-precondition:
 	@if [ ! -f .env ]; then\
