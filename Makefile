@@ -38,6 +38,9 @@ reset:
 	$(WP_CLI_RUN) db reset --defaults --yes
 	$(MAKE) install-wordpress
 
+restart-wordpress:
+	docker compose up -d --force-recreate wordpress
+
 backup: symlink-docker-remove
 	$(WPCLI_BASH_RUN) -c "backup create full"
 	$(MAKE) symlink-docker-create

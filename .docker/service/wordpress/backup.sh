@@ -76,8 +76,18 @@ function backup_create() {
 
   printf "Creating backup archive...\n"
 
+  # Create a isolated temporary directory
+  local temp_dir
+  temp_dir=$(mktemp -d -t wp-tmp-XXXXXXXXXX)
+
+  # Ensure temp directory is removed on exit/interrupt
+  trap 'rm -rf "${temp_dir}"' EXIT INT TERM
+
+  # Copy wp-content to temp (preserving timestamps and attributes)
+  cp -a "${WP_CONTENT_DIR}" "${temp_dir}/"
+
   # 1. Base tar command changing into the WordPress directory to grab wp-content
-  local tar_cmd=(tar -czf "$backup_path" -C "$(dirname "$WP_CONTENT_DIR")" "$(basename "$WP_CONTENT_DIR")")
+  local tar_cmd=(tar -czf "$backup_path" -C "$temp_dir" "$(basename "$WP_CONTENT_DIR")")
 
   # 2. If it's a full backup, append the database file from its location
   if [ "${backup_mode}" == "full" ]; then
@@ -164,7 +174,7 @@ function backup_import() {
   elif [ ! -f "${file_path}" ]; then
     printf "[Error] File not found: '%s'\n" "${file_path}"
     exit 1
-  elif [ "${ext,,}" != "tar.gz" ]; then
+  elif [[ "${file_path,,}" != *.tar.gz ]]; then
     printf "[Error] File: '%s' is not a valid backup file.\n" "${file_path}"
     exit 1
   fi

@@ -122,7 +122,7 @@ services:
     environment:
       # https://github.com/vrana/adminer/tree/master/plugins
       # listing plugins here will move them from /plugins to /plugins-enabled
-      ADMINER_PLUGINS: "tables-filter edit-calendar edit-textarea"
+      ADMINER_PLUGINS: "tables-filter edit-textarea"
       # https://github.com/vrana/adminer/tree/master/designs
       # ADMINER_DESIGN: "nicu"
       # default server entry in the login form
