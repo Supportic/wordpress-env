@@ -1,5 +1,5 @@
 ARG PHP_VERSION='8.4'
-ARG WP_VERSION='7.0.2'
+ARG WP_VERSION='7.1.4'
 FROM wordpress:${WP_VERSION}-php${PHP_VERSION}-fpm AS base
 
 USER root
